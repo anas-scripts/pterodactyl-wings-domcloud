@@ -1,0 +1,108 @@
+name: "pterodactyl-wings-rootless"
+title: "Pterodactyl Wings (Rootless)"
+version: "2.1.0"
+description: "Pterodactyl Wings Daemon with Rootless Docker support"
+category: "gaming"
+icon: "https://cdn.jsdelivr.net/gh/pterodactyl/panel/develop/public/assets/svgs/pterodactyl.svg"
+author: "DomCloud Community"
+license: "MIT"
+
+# DomCloud structure
+source: "https://github.com/anas-scripts/pterodactyl-wings-domcloud.git"
+features:
+  - "rootless-docker"
+  - "pterodactyl"
+  - "game-servers"
+  - "auto-ssl"
+  - "nginx-proxy"
+services: "docker-compose.yml"
+
+# Installation commands
+commands:
+  - "bash scripts/setup-rootless-docker.sh"
+  - "cp -f docker-compose.example.yml docker-compose.yml"
+  - "bash scripts/configure-wings.sh"
+  - "docker compose up -d"
+  - "echo '✅ Installation complete! Check logs: docker compose logs -f wings'"
+
+# User configuration
+config:
+  - name: "panel_url"
+    type: "string"
+    label: "Pterodactyl Panel URL"
+    required: true
+    placeholder: "https://panel.yourdomain.com"
+    help: "Your Pterodactyl Panel address"
+    
+  - name: "node_token"
+    type: "string"
+    label: "Node Token"
+    required: true
+    placeholder: "ptla_xxxxxxxxxxxxxxxx"
+    help: "Get from Panel → Nodes → Configuration"
+    
+  - name: "node_id"
+    type: "number"
+    label: "Node ID"
+    required: true
+    default: 1
+    help: "Node ID from your panel"
+    
+  - name: "domain"
+    type: "string"
+    label: "Domain/Subdomain"
+    required: false
+    placeholder: "wings.yourdomain.com"
+    help: "Optional: For SSL certificates"
+    
+  - name: "timezone"
+    type: "select"
+    label: "Timezone"
+    options:
+      - "Asia/Riyadh"
+      - "Asia/Dubai"
+      - "Europe/London"
+      - "America/New_York"
+      - "UTC"
+    default: "Asia/Riyadh"
+
+# Environment variables (auto-injected by DomCloud)
+environment:
+  TZ: "{{ timezone }}"
+  PTERODACTYL_PANEL_URL: "{{ panel_url }}"
+  PTERODACTYL_NODE_TOKEN: "{{ node_token }}"
+  PTERODACTYL_NODE_ID: "{{ node_id }}"
+  DOMAIN: "{{ domain }}"
+
+# Ports mapping (DomCloud will handle NAT)
+ports:
+  - "8080"   # Wings API
+  - "2022"   # SFTP
+  - "25565"  # Minecraft
+  - "27015"  # CS:GO
+
+# Health check
+health:
+  test: ["CMD", "wings", "--version"]
+  interval: "30s"
+  timeout: "10s"
+  retries: 3
+
+# Update policy
+update:
+  policy: "roll"
+  max_parallel: 1
+
+# Tags for marketplace
+tags:
+  - "gaming"
+  - "minecraft"
+  - "pterodactyl"
+  - "docker"
+  - "rootless"
+
+# Requirements
+requirements:
+  memory: "512M"
+  storage: "2G"
+  docker: true
