@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  wings:
+    image: ghcr.io/pterodactyl/wings:latest
+    container_name: pterodactyl-wings
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"  # Rootless mode
+    
+    # Environment variables
+    environment:
+      TZ: "${TZ:-Asia/Riyadh}"
+      PTERODACTYL_PANEL_URL: "${PTERODACTYL_PANEL_URL}"
+      PTERODACTYL_NODE_TOKEN: "${PTERODACTYL_NODE_TOKEN}"
+      PTERODACTYL_NODE_ID: "${PTERODACTYL_NODE_ID:-1}"
+      LOG_LEVEL: "info"
+    
+    # Rootless Docker volumes
+    volumes:
+      - "${HOME}/etc/pterodactyl:/etc/pterodactyl:rw"
+      - "${HOME}/var/lib/pterodactyl:/var/lib/pterodactyl:rw"
+      - "${HOME}/var/log/pterodactyl:/var/log/pterodactyl:rw"
+      - "/run/user/${UID:-1000}/docker.sock:/var/run/docker.sock:rw"
+      - "/tmp/pterodactyl:/tmp/pterodactyl:rw"
+    
+    # Networking
+    network_mode: "bridge"
+    
+    # Ports (will be mapped by DomCloud)
+    expose:
+      - "8080"
+      - "2022"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wings", "--diagnose"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "pterodactyl"
+
+# Optional: Add watchtower for auto-updates
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "${HOME}/.docker/config.json:/config.json:ro"
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 3600
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    command: --interval 3600 --cleanup --label-enable
+    depends_on:
+      - wings
